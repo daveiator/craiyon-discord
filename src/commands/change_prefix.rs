@@ -14,7 +14,7 @@ async fn prefix(ctx: &Context, msg: &Message) -> CommandResult {
             Ok(())
         },
         Err(e) => {
-            msg.channel_id.say(&ctx.http, e).await?;
+            msg.channel_id.say(&ctx.http, &e).await?;
             Err(CommandError::from(e))
         }
     }

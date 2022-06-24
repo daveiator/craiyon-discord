@@ -26,6 +26,9 @@ use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use tracing::{error, info};
 
+use crate::commands::change_prefix::*;
+use crate::commands::ai::*;
+
 pub struct ShardManagerContainer;
 
 impl TypeMapKey for ShardManagerContainer {
