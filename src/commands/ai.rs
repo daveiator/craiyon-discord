@@ -1,11 +1,12 @@
 use serenity::framework::standard::macros::command;
 use serenity::framework::standard::CommandResult;
+use serenity::framework::standard::CommandError;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-#[command]
-async fn ping(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.say(&ctx.http, "Pong!").await?;
+use crate::custom;
 
+#[command]
+async fn ai(ctx: &Context, msg: &Message) -> CommandResult {
     Ok(())
 }

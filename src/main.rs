@@ -9,6 +9,8 @@
 //! features = ["framework", "standard_framework"]
 //! ```
 mod commands;
+mod custom;
+mod craiyon;
 
 use std::collections::HashSet;
 use std::env;
@@ -23,9 +25,6 @@ use serenity::model::event::ResumedEvent;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 use tracing::{error, info};
-
-use crate::commands::meta::*;
-use crate::commands::owner::*;
 
 pub struct ShardManagerContainer;
 
@@ -47,7 +46,7 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(ping, quit)]
+#[commands(prefix, ai)]
 struct General;
 
 #[tokio::main]
@@ -79,7 +78,26 @@ async fn main() {
 
     // Create the framework
     let framework =
-        StandardFramework::new().configure(|c| c.owners(owners).prefix(">")).group(&GENERAL_GROUP);
+        StandardFramework::new().configure(|c|  {
+            c.owners(owners);
+            c.dynamic_prefix(|_, msg| {
+                Box::pin(
+                    async move { Some(
+                        if let Ok(prefix) = 
+                            custom::get_prefix(match msg.guild_id {
+                                Some(id) => *id.as_u64(),
+                                None => 0,
+                            })
+                        {
+                            prefix
+                        } else {
+                            "!".to_string()
+                        }
+                        
+                    ) },
+                )
+            })
+        }).group(&GENERAL_GROUP);
 
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
