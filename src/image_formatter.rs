@@ -17,7 +17,7 @@ pub fn image_collage<I: IntoIterator<Item = DynamicImage>>(
         options.image_count.0 * options.image_size.0 + (options.image_count.0 - 1) * options.gap,
         options.image_count.1 * options.image_size.1 + (options.image_count.1 - 1) * options.gap,
     );
-    let mut base = DynamicImage::new_rgb8(size.0, size.1);
+    let mut base = DynamicImage::new_rgba8(size.0, size.1);
 
     for (i, image) in images.into_iter().enumerate() {
         let col = i % options.image_count.0 as usize;

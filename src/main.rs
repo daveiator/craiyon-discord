@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::env;
 use std::sync::Arc;
 
-use std::fs::File;
+use std::fs;
 
 use chrono::offset::Local as LocalTime;
 
@@ -51,6 +51,9 @@ struct General;
 
 #[tokio::main]
 async fn main() {
+
+    fs::create_dir_all("./data/logs").unwrap();
+    fs::create_dir_all("./temp").unwrap();
     // Setting up logger
     let filepath = format!("./data/logs/{}log.txt", LocalTime::now().format("%Y_%m_%d-%H_%M_%S"));
     //TODO logger

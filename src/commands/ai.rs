@@ -21,9 +21,21 @@ use crate::image_formatter;
 
 #[command]
 async fn ai(ctx: &Context, msg: &Message) -> CommandResult {
-    msg.channel_id.say(&ctx.http, "Generating content...").await?;
-    println!("Generating {:?} for {}", msg.content, msg.author.name);
-    return match craiyon::generate(msg.content.to_string()).await {
+    //remove the content before the first whitespace
+    let content = msg.content.split_whitespace().skip(1).collect::<Vec<&str>>().join(" ");
+
+    let tmp_msg = msg.channel_id.send_message(&ctx.http, |m| {
+        m.content("Generating content...");
+        m.reference_message(msg);
+        m.allowed_mentions(|am| {
+            am.replied_user(true);
+            am
+        });
+        m
+    }).await?;
+    let typing = msg.channel_id.start_typing(&ctx.http)?;
+    println!("Generating {:?} for {}", content, msg.author.name);
+    return match craiyon::generate(content.to_string()).await {
         Ok(images) => {
             let image = image_formatter::image_collage(
                 images.iter().map(|image| {
@@ -34,20 +46,29 @@ async fn ai(ctx: &Context, msg: &Message) -> CommandResult {
                                 image_size: (256, 256),
                                 gap: 8,
                             },
-                        );
-            println!("Generated image:");
-                        
+                        );                       
             let mut buffer = Cursor::new(Vec::new());
-            image.write_to(&mut buffer, image::ImageOutputFormat::Jpeg(8)).unwrap();
+            image.write_to(&mut buffer, image::ImageOutputFormat::Jpeg(8))?;
             let image_bytes = buffer.get_ref().to_vec();
             //save image to file
-            let mut file = File::create("./temp/image.jpeg").unwrap();
-            file.write_all(&image_bytes).unwrap();
+            let mut file = File::create(format!("./temp/{}.jpeg", msg.id))?;
+            file.write_all(&image_bytes)?;
             println!("Sending image...");
-            msg.channel_id.send_files(&ctx.http, vec!["temp/image.jpeg"], |m| m.content("Image")).await?;
+            msg.channel_id.send_files(&ctx.http, vec![format!("temp/{}.jpeg", msg.id).as_str()], |m| {
+                m.content("Images for prompt:");
+                m.reference_message(msg);
+                m.allowed_mentions(|am| {
+                    am.replied_user(true);
+                    am
+                });
+                m
+        }).await?;
+            _ = typing.stop();
+            tmp_msg.delete(&ctx.http).await?;
+            //delete image file
+            std::fs::remove_file(format!("./temp/{}.jpeg", msg.id))?;
             Ok(())
         },
-
         Err(e) => {
             msg.channel_id.say(&ctx.http, format!("Couldn't generate content due to error: {}", &e)).await?;
             eprintln!("Couldn't generate content: {}", e);
