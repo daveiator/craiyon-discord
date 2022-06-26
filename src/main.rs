@@ -11,8 +11,6 @@ use std::sync::Arc;
 
 use std::fs;
 
-use chrono::offset::Local as LocalTime;
-
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
 use serenity::framework::standard::macros::group;
@@ -52,12 +50,10 @@ struct General;
 #[tokio::main]
 async fn main() {
 
-    fs::create_dir_all("./data/logs").unwrap();
+    fs::create_dir_all("./data").unwrap();
     fs::create_dir_all("./temp").unwrap();
-    // Setting up logger
-    let filepath = format!("./data/logs/{}log.txt", LocalTime::now().format("%Y_%m_%d-%H_%M_%S"));
-    //TODO logger
-    info!("Logger initialized");
+
+    //TODO (Someday): Add a logger
 
     // This will load the environment variables located at `./.env`, relative to
     // the CWD. See `./.env.example` for an example on how to structure this.
@@ -98,7 +94,7 @@ async fn main() {
                             println!("Got prefix: {}", prefix);
                             prefix
                         } else {
-                            let default_prefix: String = env::var("DEFAULT_PREFIX").unwrap_or("crai>".to_string());
+                            let default_prefix: String = env::var("DEFAULT_PREFIX").unwrap_or_else(|_| "crai>".to_string());
                             println!("Custom prefix not found. Defaulting to {}", default_prefix);
                             default_prefix
                         }

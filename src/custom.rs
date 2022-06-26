@@ -38,7 +38,7 @@ pub fn get_prefix(guild_id: u64) -> Result<String, Error> {
 }
 
 pub fn set_prefix(guild_id: u64, prefix: String) -> Result<(), Error> {
-    let config = match serde_json::from_str::<Config>(&read_datafile()?.to_string()) {
+    let config = match serde_json::from_str::<Config>(&read_datafile()?) {
         Ok(c) => c,
         Err(e) => {
             println!("Couldn't read datafile: {}", e);
@@ -47,7 +47,7 @@ pub fn set_prefix(guild_id: u64, prefix: String) -> Result<(), Error> {
         },
     };
     println!("Config: {:?}", config);
-    let mut guilds = config.guilds.clone();
+    let mut guilds = config.guilds;
     let guild: Option<&mut Guild> = guilds.iter_mut().find(|g| g.id == guild_id);
     match guild {
         Some(g) => {
@@ -57,7 +57,7 @@ pub fn set_prefix(guild_id: u64, prefix: String) -> Result<(), Error> {
             // Add the guild to the config
             guilds.push(Guild {
                 id: guild_id,
-                prefix: prefix,
+                prefix,
             });
         }
     }

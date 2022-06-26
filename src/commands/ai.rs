@@ -4,18 +4,18 @@ use serenity::framework::standard::CommandError;
 use serenity::model::prelude::*;
 use serenity::prelude::*;
 
-use serenity::model::channel::AttachmentType;
+
 
 use std::io::Cursor;
-use std::path::Path;
+
 use image;
 
 use std::fs::File;
 use std::io::Write;
 
-use reqwest::Url;
 
-use crate::custom;
+
+
 use crate::craiyon;
 use crate::image_formatter;
 
