@@ -17,6 +17,7 @@ pub async fn generate<S: Into<String>>(prompt: S) -> reqwest::Result<Vec<Vec<u8>
     let body = Payload {
         prompt: prompt.into(),
     };
+    println!("Sending request to craiyon.com");
     let response = match client
         .post("https://backend.craiyon.com/generate")
         .json(&body)

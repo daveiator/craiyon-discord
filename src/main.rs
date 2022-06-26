@@ -1,20 +1,17 @@
-//! Requires the 'framework' feature flag be enabled in your project's
-//! `Cargo.toml`.
-//!
-//! This can be enabled by specifying the feature in the dependency section:
-//!
-//! ```toml
-//! [dependencies.serenity]
-//! git = "https://github.com/serenity-rs/serenity.git"
-//! features = ["framework", "standard_framework"]
-//! ```
+#[macro_use] extern crate log;
+
 mod commands;
 mod custom;
 mod craiyon;
+mod image_formatter;
 
 use std::collections::HashSet;
 use std::env;
 use std::sync::Arc;
+
+use std::fs::File;
+
+use chrono::offset::Local as LocalTime;
 
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
@@ -24,10 +21,10 @@ use serenity::http::Http;
 use serenity::model::event::ResumedEvent;
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
-use tracing::{error, info};
 
 use crate::commands::change_prefix::*;
 use crate::commands::ai::*;
+use crate::commands::test::*;
 
 pub struct ShardManagerContainer;
 
@@ -49,20 +46,19 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(prefix, ai)]
+#[commands(prefix, ai, amogus)]
 struct General;
 
 #[tokio::main]
 async fn main() {
+    // Setting up logger
+    let filepath = format!("./data/logs/{}log.txt", LocalTime::now().format("%Y_%m_%d-%H_%M_%S"));
+    //TODO logger
+    info!("Logger initialized");
+
     // This will load the environment variables located at `./.env`, relative to
     // the CWD. See `./.env.example` for an example on how to structure this.
     dotenv::dotenv().expect("Failed to load .env file");
-
-    // Initialize the logger to use environment variables.
-    //
-    // In this case, a good default is setting the environment variable
-    // `RUST_LOG` to `debug`.
-    tracing_subscriber::fmt::init();
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
 
@@ -86,18 +82,25 @@ async fn main() {
             c.dynamic_prefix(|_, msg| {
                 Box::pin(
                     async move { Some(
-                        if let Ok(prefix) = 
-                            custom::get_prefix(match msg.guild_id {
-                                Some(id) => *id.as_u64(),
-                                None => 0,
-                            })
+                        if let Ok(prefix) = custom::get_prefix(match msg.guild_id {
+                            Some(id) => {
+                                *id.as_u64()
+                            },
+                            None => {
+                                eprintln!("Couldn't get prefix: No guild ID: {:?}", msg.guild_id);
+                                0
+                            },
+                        })
                         {
+                            println!("Got prefix: {}", prefix);
                             prefix
                         } else {
-                            "!".to_string()
+                            let default_prefix: String = env::var("DEFAULT_PREFIX").unwrap_or("crai>".to_string());
+                            println!("Custom prefix not found. Defaulting to {}", default_prefix);
+                            default_prefix
                         }
                         
-                    ) },
+                    )},
                 )
             })
         }).group(&GENERAL_GROUP);
