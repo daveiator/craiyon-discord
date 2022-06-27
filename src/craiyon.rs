@@ -17,7 +17,7 @@ pub async fn generate<S: Into<String>>(prompt: S) -> reqwest::Result<Vec<Vec<u8>
     let body = Payload {
         prompt: prompt.into(),
     };
-    println!("Sending request to craiyon.com");
+    info!("Sending request to craiyon.com");
     let response = match client
         .post("https://backend.craiyon.com/generate")
         .json(&body)
@@ -25,8 +25,14 @@ pub async fn generate<S: Into<String>>(prompt: S) -> reqwest::Result<Vec<Vec<u8>
         .await?
         .error_for_status()
     {
-        Ok(response) => response.json::<Response>().await?,
-        Err(err) => return Err(err),
+        Ok(response) => {
+            info!("Received images from craiyon.com");
+            response.json::<Response>().await?
+        },
+        Err(err) => {
+            error!("Couldn't get images from craiyon.com: {}", err);
+            return Err(err)
+        },
     };
     let images = response
         .images

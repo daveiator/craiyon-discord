@@ -1,15 +1,16 @@
-#[macro_use] extern crate log;
-
 mod commands;
-mod custom;
+mod database;
 mod craiyon;
 mod image_formatter;
 
+#[macro_use] extern crate log;
+use simplelog as slog;
+
 use std::collections::HashSet;
+use std::fs;
 use std::env;
 use std::sync::Arc;
 
-use std::fs;
 
 use serenity::async_trait;
 use serenity::client::bridge::gateway::ShardManager;
@@ -22,7 +23,6 @@ use serenity::prelude::*;
 
 use crate::commands::change_prefix::*;
 use crate::commands::ai::*;
-use crate::commands::test::*;
 
 pub struct ShardManagerContainer;
 
@@ -44,26 +44,52 @@ impl EventHandler for Handler {
 }
 
 #[group]
-#[commands(prefix, ai, amogus)]
+#[commands(prefix, ai)]
 struct General;
 
 #[tokio::main]
 async fn main() {
+    // Setup logger
+    if let Err(why) = slog::TermLogger::init(
+        slog::LevelFilter::Info,
+        slog::Config::default(),
+        slog::TerminalMode::Mixed,
+        slog::ColorChoice::Auto) 
+    {
+        panic!("Failed to initialize logger: {}", why);
+    }
+    info!("Logger stated!");
 
+    //Setup directories
+    info!("Setting up directories...");
     fs::create_dir_all("./data").unwrap();
     fs::create_dir_all("./temp").unwrap();
 
-    //TODO (Someday): Add a logger
 
     // This will load the environment variables located at `./.env`, relative to
     // the CWD. See `./.env.example` for an example on how to structure this.
-    dotenv::dotenv().expect("Failed to load .env file");
+    info!("Loading environment variables...");
+    if let Err(why) = dotenv::dotenv() {
+        error!("Error loading .env file: {}", why);
+        warn!("Using default environment variables...");
+    }
 
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    // Getting the token
+    info!("Loading Discord token...");
+    let token = match env::var("DISCORD_TOKEN") {
+        Ok(token) => token,
+        Err(why) => {
+            error!("Error loading DISCORD_TOKEN: {}", why);
+            panic!("No token found! Can't continue!");
+        }
+    };
 
+    // Create http context
+    info!("Creating http context...");
     let http = Http::new(&token);
 
     // We will fetch your bot's owners and id
+    info!("Fetching application info...");
     let (owners, _bot_id) = match http.get_current_application_info().await {
         Ok(info) => {
             let mut owners = HashSet::new();
@@ -71,31 +97,42 @@ async fn main() {
 
             (owners, info.id)
         },
-        Err(why) => panic!("Could not access application info: {:?}", why),
+        Err(why) => {
+            error!("Error loading application info: {:?}", why);
+            panic!("Could not access application info: {:?}", why);
+        },
     };
 
     // Create the framework
+    info!("Creating Discord framework...");
     let framework =
         StandardFramework::new().configure(|c|  {
             c.owners(owners);
             c.dynamic_prefix(|_, msg| {
                 Box::pin(
                     async move { Some(
-                        if let Ok(prefix) = custom::get_prefix(match msg.guild_id {
+                        if let Ok(prefix) = database::get_prefix(match msg.guild_id {
                             Some(id) => {
                                 *id.as_u64()
                             },
                             None => {
-                                eprintln!("Couldn't get prefix: No guild ID: {:?}", msg.guild_id);
+                                error!("Couldn't get prefix: No guild ID: {:?}", msg.guild_id);
                                 0
                             },
                         })
                         {
-                            println!("Got prefix: {}", prefix);
+                            info!("Got prefix: {}", prefix);
                             prefix
                         } else {
-                            let default_prefix: String = env::var("DEFAULT_PREFIX").unwrap_or_else(|_| "crai>".to_string());
-                            println!("Custom prefix not found. Defaulting to {}", default_prefix);
+                            let default_prefix: String = match env::var("DEFAULT_PREFIX") {
+                                Ok(prefix) => prefix,
+                                Err(why) => {
+                                    warn!("Error loading DEFAULT_PREFIX: {}", why);
+                                    warn!("Using default prefix: {}", "crai>");
+                                    "crai>".to_string()
+                                },
+                            };
+                            info!("No custom prefix not found for guild. Defaulting to {}", default_prefix);
                             default_prefix
                         }
                         
@@ -104,15 +141,21 @@ async fn main() {
             })
         }).group(&GENERAL_GROUP);
 
+    // Create the client.
+    info!("Creating Discord client...");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
-    let mut client = Client::builder(&token, intents)
+    let mut client = match Client::builder(&token, intents)
         .framework(framework)
         .event_handler(Handler)
-        .await
-        .expect("Err creating client");
-
+        .await {
+            Ok(client) => client,
+            Err(why) => {
+                error!("Error creating client: {:?}", why);
+                panic!("Could not create client: {:?}", why);
+            }
+        };
     {
         let mut data = client.data.write().await;
         data.insert::<ShardManagerContainer>(client.shard_manager.clone());
@@ -121,11 +164,15 @@ async fn main() {
     let shard_manager = client.shard_manager.clone();
 
     tokio::spawn(async move {
-        tokio::signal::ctrl_c().await.expect("Could not register ctrl+c handler");
+        if let Err(why) = tokio::signal::ctrl_c().await {
+            error!("Couldn't register CTRL-C handler: {:?}", why);
+            panic!("Couldn't register CTRL-C handler: {:?}", why);
+        }
         shard_manager.lock().await.shutdown_all().await;
     });
 
     if let Err(why) = client.start().await {
         error!("Client error: {:?}", why);
+        panic!("Client error: {:?}", why);
     }
 }

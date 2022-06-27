@@ -1,4 +1,4 @@
-
+// Again, thanks to JelNiSlaw for this snippet.
 
 use image::{imageops, DynamicImage};
 
