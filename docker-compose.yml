@@ -1,0 +1,6 @@
+services:
+  craiyon-discord:
+    image: 
+    environment:
+      - DISCORD_TOKEN=${{ secrets.DISCORD_TOKEN }}
+      - DEFAULT_PREFIX=crai>
