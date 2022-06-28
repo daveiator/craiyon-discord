@@ -1,7 +1,7 @@
 FROM rust:alpine as builder
 WORKDIR /usr/src/craiyon-discord
 COPY . .
-RUN apk update && apk upgrade && apk install musl-dev && rm -rf /var/lib/apt/lists/*
+RUN apk update && apk upgrade && apk add musl-dev && rm -rf /var/lib/apt/lists/*
 RUN cargo install --path .
 
 FROM debian:buster-slim
