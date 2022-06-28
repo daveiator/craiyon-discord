@@ -1,9 +1,8 @@
-FROM  alpine:latest
+FROM rust:latest-alpine as builder
+WORKDIR /usr/src/myapp
+COPY . .
+RUN cargo install --path .
 
-VOLUME /opt/app/data
-
-WORKDIR /opt/app
-
-COPY ./target/release/craiyon-discord ./
-
-CMD [ "craiyon-discord" ]
+FROM debian:buster-slim
+COPY --from=builder /usr/local/cargo/bin/craiyon-discord /usr/local/bin/craiyon-discord
+CMD ["craiyon-discord"]
