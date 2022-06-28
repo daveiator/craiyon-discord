@@ -1,5 +1,5 @@
 FROM rust:alpine as builder
-WORKDIR /usr/src/myapp
+WORKDIR /usr/src/craiyon-discord
 COPY . .
 RUN cargo install --path .
 
