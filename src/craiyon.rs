@@ -12,10 +12,10 @@ struct Response {
     images: Vec<String>,
 }
 
-pub async fn generate<S: Into<String>>(prompt: S) -> reqwest::Result<Vec<Vec<u8>>> {
+pub async fn generate(prompt: String) -> reqwest::Result<Vec<Vec<u8>>> {
     let client = reqwest::Client::new();
     let body = Payload {
-        prompt: prompt.into(),
+        prompt,
     };
     info!("Sending request to craiyon.com");
     let response = match client
