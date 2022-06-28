@@ -1,3 +1,5 @@
+name: Building Release-Binaries
+
 on:
   release:
     types: [created]
