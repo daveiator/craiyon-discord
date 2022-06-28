@@ -41,7 +41,7 @@ async fn ai(ctx: &Context, msg: &Message) -> CommandResult {
                             },
                         );                       
             let mut buffer = Cursor::new(Vec::new());
-            image.write_to(&mut buffer, image::ImageOutputFormat::Jpeg(8))?;
+            image.write_to(&mut buffer, image::ImageOutputFormat::Jpeg(24))?;
             let image_bytes = buffer.get_ref().to_vec();
             //save image to file
             let mut file = File::create(format!("./temp/{}.jpeg", msg.id))?;
