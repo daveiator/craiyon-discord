@@ -13,7 +13,11 @@ struct Response {
 }
 
 pub async fn generate(prompt: String) -> reqwest::Result<Vec<Vec<u8>>> {
-    let client = reqwest::Client::new();
+    info!("Creating reqwest Client...");
+    let client = reqwest::ClientBuilder::new();
+    info!("Building Client...");
+    let client = client.build()?;
+    info!("Creating request...");
     let body = Payload {
         prompt,
     };
