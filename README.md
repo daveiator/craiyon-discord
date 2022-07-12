@@ -18,6 +18,8 @@
  Should this infringe on any legal rights, please let me know!
 
  ## TODOS:
+ 
+- [ ] Fix docker issues. The bot runs fine on the parent os, but inside a docker-container the requwest-builder seems to crash the instance at: `let client = client.build()?;`. Client being: `reqwest::ClientBuilder::new();`
 
 - [ ] Deploy official bot
 - [ ] Add documentation
